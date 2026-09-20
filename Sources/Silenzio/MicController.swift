@@ -1,3 +1,4 @@
+import AppKit
 import AVFoundation
 import Combine
 import CoreAudio
@@ -24,6 +25,7 @@ final class MicController: ObservableObject {
     @Published private(set) var decibelLevel: Float = -160
     @Published private(set) var usesVolumeFallback = false
     @Published private(set) var lastError: String?
+    @Published private(set) var hasMicrophoneAccess = false
 
     private var savedVolume: Float?
     private var audioEngine: AVAudioEngine?
@@ -296,12 +298,14 @@ final class MicController: ObservableObject {
     // MARK: - Level meter
 
     private func requestMicrophoneAccessAndStartMeter() {
+        refreshMicrophoneAccess()
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
             startMeter()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
                 Task { @MainActor in
+                    self?.refreshMicrophoneAccess()
                     if granted {
                         self?.startMeter()
                     }
@@ -309,6 +313,40 @@ final class MicController: ObservableObject {
             }
         default:
             break
+        }
+    }
+
+    func refreshMicrophoneAccess() {
+        hasMicrophoneAccess = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    }
+
+    func openMicrophoneSettings() {
+        refreshMicrophoneAccess()
+        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                Task { @MainActor in
+                    self?.refreshMicrophoneAccess()
+                    if granted {
+                        self?.restartMeter()
+                    } else {
+                        self?.openSystemMicrophonePrivacyPane()
+                    }
+                }
+            }
+            return
+        }
+        openSystemMicrophonePrivacyPane()
+    }
+
+    private func openSystemMicrophonePrivacyPane() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
+            "x-apple.systempreferences:com.apple.Settings.PrivacySecurity.extension?Privacy_Microphone"
+        ]
+        for candidate in candidates {
+            if let url = URL(string: candidate), NSWorkspace.shared.open(url) {
+                return
+            }
         }
     }
 

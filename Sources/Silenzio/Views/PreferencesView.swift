@@ -1,98 +1,113 @@
+import AppKit
 import SwiftUI
 
 struct PreferencesView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var hotkeys: HotkeyManager
+    @ObservedObject var mic: MicController
     @Environment(\.dismiss) private var dismiss
-
-    @State private var selectedTab: PreferencesTab = .shortcuts
-
-    private enum PreferencesTab: String, CaseIterable, Identifiable {
-        case general
-        case shortcuts
-
-        var id: String { rawValue }
-
-        var title: String {
-            switch self {
-            case .general: return "General"
-            case .shortcuts: return "Shortcuts"
-            }
-        }
-
-        var symbol: String {
-            switch self {
-            case .general: return "gearshape"
-            case .shortcuts: return "keyboard"
-            }
-        }
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            tabBar
+            header
+            shortcutsLabel
+            if !mic.hasMicrophoneAccess {
+                microphonePermissionCard
+            }
             settingsList
             footer
         }
         .frame(width: 420)
         .background(SilenzioTheme.preferencesBackground)
         .onAppear {
+            mic.refreshMicrophoneAccess()
             hotkeys.refreshAccessibilityStatus(prompt: false)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            mic.refreshMicrophoneAccess()
         }
     }
 
-    private var tabBar: some View {
-        HStack(spacing: 8) {
-            ForEach(PreferencesTab.allCases) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: tab.symbol)
-                            .font(.system(size: 17, weight: .regular))
-                            .foregroundStyle(selectedTab == tab ? SilenzioTheme.primaryLabel : SilenzioTheme.secondaryLabel)
-                        Text(tab.title)
-                            .font(.system(size: 11, weight: selectedTab == tab ? .semibold : .medium))
-                            .foregroundStyle(selectedTab == tab ? SilenzioTheme.primaryLabel : SilenzioTheme.secondaryLabel)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(selectedTab == tab ? Color.primary.opacity(0.10) : Color.clear)
-                    )
-                }
-                .buttonStyle(.plain)
+    private var header: some View {
+        Text("Preferences")
+            .font(.system(size: 14, weight: .semibold))
+            .tracking(-0.14)
+            .foregroundStyle(SilenzioTheme.primaryLabel)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background(Color.primary.opacity(0.02))
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(SilenzioTheme.separator)
+                    .frame(height: 1)
             }
+    }
+
+    private var shortcutsLabel: some View {
+        Text("SHORTCUTS")
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(0.55)
+            .foregroundStyle(SilenzioTheme.secondaryLabel)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 22)
+            .padding(.top, 16)
+            .padding(.bottom, 2)
+    }
+
+    private var microphonePermissionCard: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color(hex: 0xFF9F0A).opacity(0.18))
+                    .frame(width: 26, height: 26)
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color(hex: 0xFF9F0A))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Microphone Access")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(SilenzioTheme.primaryLabel)
+                Text("Allow Silenzio to monitor and mute your input.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(SilenzioTheme.secondaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button("Open Settings") {
+                mic.openMicrophoneSettings()
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(SilenzioTheme.accentBlue)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 58)
-        .background(Color.primary.opacity(0.02))
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(SilenzioTheme.separator)
-                .frame(height: 1)
-        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color(hex: 0xFF9F0A).opacity(0.10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color(hex: 0xFF9F0A).opacity(0.30), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
     }
 
     private var settingsList: some View {
         VStack(spacing: 0) {
-            switch selectedTab {
-            case .shortcuts:
-                shortcutRow
-                divider
-                muteModeRow
-                divider
-                launchRow
-                divider
-                statusDisplayRow
-            case .general:
-                launchRow
-                divider
-                statusDisplayRow
-                divider
-                accessibilityRow
-            }
+            shortcutRow
+            divider
+            muteModeRow
+            divider
+            launchRow
+            divider
+            statusDisplayRow
         }
         .background(SilenzioTheme.surface)
         .overlay(
@@ -175,32 +190,6 @@ struct PreferencesView: View {
         }
         .padding(.horizontal, 14)
         .frame(height: 54)
-    }
-
-    private var accessibilityRow: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Accessibility Access")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(SilenzioTheme.primaryLabel)
-                Text(hotkeys.isAccessibilityTrusted ? "Granted — push-to-talk release works globally" : "Recommended for push-to-talk key release")
-                    .font(.system(size: 11))
-                    .foregroundStyle(SilenzioTheme.secondaryLabel)
-            }
-            Spacer()
-            if hotkeys.isAccessibilityTrusted {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(SilenzioTheme.liveGreen)
-            } else {
-                Button("Enable…") {
-                    hotkeys.openAccessibilitySettings()
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            }
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 54)
     }
 
     private var divider: some View {

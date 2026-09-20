@@ -17,16 +17,16 @@ struct SilenzioApp: App {
         .menuBarExtraStyle(.window)
 
         Settings {
-            PreferencesView(settings: settings, hotkeys: hotkeys)
+            PreferencesView(settings: settings, hotkeys: hotkeys, mic: mic)
         }
-        .defaultSize(width: 420, height: 370)
+        .defaultSize(width: 420, height: 475)
 
         // Explicit window fallback — more reliable than Settings for agent apps.
         Window("Silenzio Preferences", id: PreferencesPresenter.windowID) {
-            PreferencesView(settings: settings, hotkeys: hotkeys)
+            PreferencesView(settings: settings, hotkeys: hotkeys, mic: mic)
         }
         .windowResizability(.contentSize)
-        .defaultSize(width: 420, height: 370)
+        .defaultSize(width: 420, height: 475)
     }
 
     @ViewBuilder

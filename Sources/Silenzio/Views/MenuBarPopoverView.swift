@@ -189,34 +189,20 @@ struct MenuBarPopoverView: View {
 
     private var bottomBar: some View {
         HStack {
-            Button(action: openPreferences) {
-                HStack(spacing: 6) {
-                    Text("Preferences")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(SilenzioTheme.primaryLabel.opacity(0.8))
-                    Text("⌘,")
-                        .font(.system(size: 12))
-                        .foregroundStyle(SilenzioTheme.tertiaryLabel)
-                }
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(",", modifiers: .command)
+            Button("Preferences", action: openPreferences)
+                .buttonStyle(.plain)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(SilenzioTheme.primaryLabel.opacity(0.8))
+                .keyboardShortcut(",", modifiers: .command)
 
             Spacer()
 
-            Button {
+            Button("Quit") {
                 NSApplication.shared.terminate(nil)
-            } label: {
-                HStack(spacing: 6) {
-                    Text("Quit")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(SilenzioTheme.primaryLabel.opacity(0.8))
-                    Text("⌘Q")
-                        .font(.system(size: 12))
-                        .foregroundStyle(SilenzioTheme.tertiaryLabel)
-                }
             }
             .buttonStyle(.plain)
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(SilenzioTheme.primaryLabel.opacity(0.8))
             .keyboardShortcut("q", modifiers: .command)
         }
         .padding(.top, 10)
