@@ -30,11 +30,18 @@ if [[ ! -x "$BIN" ]]; then
   exit 1
 fi
 
+ICON_SRC="$ROOT/Silenzio.icns"
+if [[ ! -f "$ICON_SRC" ]]; then
+  echo "error: app icon not found at $ICON_SRC" >&2
+  exit 1
+fi
+
 echo "Packaging ${APP_DIR}..."
 rm -rf "${APP_DIR}"
 mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
 cp "$BIN" "${MACOS_DIR}/Silenzio"
 cp "$ROOT/Resources/Info.plist" "${CONTENTS}/Info.plist"
+cp "$ICON_SRC" "${RESOURCES_DIR}/Silenzio.icns"
 chmod +x "${MACOS_DIR}/Silenzio"
 
 # Ad-hoc sign so Accessibility / TCC prompts attach to the bundle identity.
