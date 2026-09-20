@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @main
@@ -13,6 +14,9 @@ struct SilenzioApp: App {
             MenuBarRootView(mic: mic, hotkeys: hotkeys, settings: settings)
         } label: {
             menuBarLabel
+                .onAppear {
+                    appDelegate.startServices(mic: mic, hotkeys: hotkeys, settings: settings)
+                }
         }
         .menuBarExtraStyle(.window)
 
@@ -68,9 +72,6 @@ private struct MenuBarRootView: View {
                 PreferencesPresenter.open(openWindow: openWindow)
             }
         )
-        .onAppear {
-            hotkeys.configure(mic: mic, settings: settings)
-        }
     }
 }
 
@@ -96,11 +97,30 @@ enum PreferencesPresenter {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var muteHUDCancellable: AnyCancellable?
+    private var didStartServices = false
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    @MainActor
+    func startServices(mic: MicController, hotkeys: HotkeyManager, settings: SettingsStore) {
+        guard !didStartServices else { return }
+        didStartServices = true
+
+        hotkeys.configure(mic: mic, settings: settings)
+
+        muteHUDCancellable = mic.$isMuted
+            .receive(on: RunLoop.main)
+            .dropFirst()
+            .removeDuplicates()
+            .sink { muted in
+                MuteHUDController.shared.show(muted: muted)
+            }
     }
 }
