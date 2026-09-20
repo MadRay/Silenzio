@@ -106,8 +106,6 @@ struct PreferencesView: View {
             muteModeRow
             divider
             launchRow
-            divider
-            statusDisplayRow
         }
         .background(SilenzioTheme.surface)
         .overlay(
@@ -146,7 +144,10 @@ struct PreferencesView: View {
                 options: MuteMode.allCases,
                 selection: Binding(
                     get: { settings.muteMode },
-                    set: { settings.muteMode = $0 }
+                    set: { newValue in
+                        settings.muteMode = newValue
+                        hotkeys.muteModeDidChange(newValue)
+                    }
                 ),
                 title: { $0.title }
             )
@@ -168,25 +169,6 @@ struct PreferencesView: View {
             .labelsHidden()
             .toggleStyle(.switch)
             .tint(SilenzioTheme.liveGreen)
-        }
-        .padding(.horizontal, 14)
-        .frame(height: 54)
-    }
-
-    private var statusDisplayRow: some View {
-        HStack {
-            Text("Status Bar Display")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(SilenzioTheme.primaryLabel)
-            Spacer()
-            SegmentedPill(
-                options: StatusBarDisplay.allCases,
-                selection: Binding(
-                    get: { settings.statusBarDisplay },
-                    set: { settings.statusBarDisplay = $0 }
-                ),
-                title: { $0.title }
-            )
         }
         .padding(.horizontal, 14)
         .frame(height: 54)

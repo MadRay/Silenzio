@@ -16,34 +16,14 @@ enum MuteMode: String, CaseIterable, Identifiable {
     }
 }
 
-enum StatusBarDisplay: String, CaseIterable, Identifiable {
-    case iconOnly
-    case iconAndBadge
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .iconOnly: return "Icon Only"
-        case .iconAndBadge: return "Icon + Badge"
-        }
-    }
-}
-
 @MainActor
 final class SettingsStore: ObservableObject {
     @AppStorage("muteMode") var muteModeRaw: String = MuteMode.toggle.rawValue
-    @AppStorage("statusBarDisplay") var statusBarDisplayRaw: String = StatusBarDisplay.iconOnly.rawValue
     @AppStorage("launchAtLogin") private var launchAtLoginStored: Bool = false
 
     var muteMode: MuteMode {
         get { MuteMode(rawValue: muteModeRaw) ?? .toggle }
         set { muteModeRaw = newValue.rawValue }
-    }
-
-    var statusBarDisplay: StatusBarDisplay {
-        get { StatusBarDisplay(rawValue: statusBarDisplayRaw) ?? .iconOnly }
-        set { statusBarDisplayRaw = newValue.rawValue }
     }
 
     var launchAtLogin: Bool {

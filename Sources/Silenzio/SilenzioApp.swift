@@ -23,37 +23,23 @@ struct SilenzioApp: App {
         Settings {
             PreferencesView(settings: settings, hotkeys: hotkeys, mic: mic)
         }
-        .defaultSize(width: 420, height: 475)
+        .defaultSize(width: 420, height: 420)
 
         // Explicit window fallback — more reliable than Settings for agent apps.
         Window("Silenzio Preferences", id: PreferencesPresenter.windowID) {
             PreferencesView(settings: settings, hotkeys: hotkeys, mic: mic)
         }
         .windowResizability(.contentSize)
-        .defaultSize(width: 420, height: 475)
+        .defaultSize(width: 420, height: 420)
     }
 
     @ViewBuilder
     private var menuBarLabel: some View {
-        let symbol = mic.isMuted ? "mic.slash.fill" : "mic.fill"
-        let showBadge = settings.statusBarDisplay == .iconAndBadge
-
-        if showBadge {
-            Label {
-                Text(mic.isMuted ? "Muted" : "Live")
-            } icon: {
-                Image(systemName: symbol)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(mic.isMuted ? SilenzioTheme.muteRed : Color.primary)
-            }
-        } else {
-            Image(systemName: symbol)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(mic.isMuted ? SilenzioTheme.muteRed : Color.primary)
-        }
+        Image(systemName: mic.isMuted ? "mic.slash.fill" : "mic.fill")
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(mic.isMuted ? SilenzioTheme.muteRed : Color.primary)
     }
 }
-
 /// Reads `openSettings` / `openWindow` from the MenuBarExtra scene environment
 /// (these are no-ops when captured on the `App` type itself).
 private struct MenuBarRootView: View {
