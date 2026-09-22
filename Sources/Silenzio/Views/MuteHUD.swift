@@ -15,14 +15,22 @@ final class MuteHUDController {
 
     func show(muted: Bool) {
         let view = MuteHUDView(isMuted: muted)
-        let fitting = NSHostingView(rootView: view)
-        fitting.frame = NSRect(origin: .zero, size: fitting.fittingSize)
-
+        let fitting = makeHostingView(rootView: view)
         let size = fitting.fittingSize
+
         let panel = ensurePanel(size: size)
         hosting?.removeFromSuperview()
         fitting.frame = NSRect(origin: .zero, size: size)
-        panel.contentView = fitting
+
+        if let contentView = panel.contentView {
+            contentView.subviews.forEach { $0.removeFromSuperview() }
+            fitting.autoresizingMask = [.width, .height]
+            contentView.addSubview(fitting)
+            fitting.frame = contentView.bounds
+        } else {
+            panel.contentView = fitting
+        }
+
         hosting = fitting
         panel.setContentSize(size)
         center(panel, size: size)
@@ -53,6 +61,17 @@ final class MuteHUDController {
         })
     }
 
+    private func makeHostingView(rootView: MuteHUDView) -> NSHostingView<MuteHUDView> {
+        let hosting = NSHostingView(rootView: rootView)
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = NSColor.clear.cgColor
+        // Avoid AppKit filling the square window behind the rounded card.
+        if #available(macOS 13.0, *) {
+            hosting.sizingOptions = [.intrinsicContentSize]
+        }
+        return hosting
+    }
+
     private func ensurePanel(size: NSSize) -> NSPanel {
         if let panel {
             return panel
@@ -60,18 +79,28 @@ final class MuteHUDController {
 
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         panel.level = .floating
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        // Window shadow follows the rectangular frame and paints black corners —
+        // the card draws its own soft shadow in SwiftUI instead.
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isMovableByWindowBackground = false
         panel.ignoresMouseEvents = true
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+
+        let clearContent = NSView(frame: NSRect(origin: .zero, size: size))
+        clearContent.wantsLayer = true
+        clearContent.layer?.backgroundColor = NSColor.clear.cgColor
+        panel.contentView = clearContent
+
         self.panel = panel
         return panel
     }
@@ -115,11 +144,15 @@ struct MuteHUDView: View {
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color(hex: 0x1C1C1E).opacity(0.92))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.35), radius: 24, y: 10)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
+        // Small inset so the soft shadow isn't clipped by the panel.
+        .padding(12)
+        .background(Color.clear)
     }
 }
